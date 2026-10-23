@@ -1,0 +1,5 @@
+fun printer(a) {
+    print a;
+}
+
+printer("hello world");
