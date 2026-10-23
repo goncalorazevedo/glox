@@ -1,8 +1,39 @@
-fun fib(n) {
-    if (n < 2) {
-        return n;
-    }
-    return fib(n-1) + fib(n-2);
+// lox language from the book crafting interpreters
+// here abusing closures to achieve a memoized fib implementation
+
+fun empty_cache(n) {
+    return nil;
 }
 
-print fib(10);
+fun extend(cache, key, value) {
+    fun lookup(n) {
+        if (n == key) return value;
+        return cache(n);
+    }
+    return lookup;
+}
+
+fun make_fib() {
+    var cache = empty_cache;
+
+    fun fib(n) {
+        var cached = cache(n);
+        if (cached != nil) {
+            return cached;
+        }
+
+        var result;
+        if (n < 2) {
+            result = n;
+        } else {
+            result = fib(n - 1) + fib(n - 2);
+        }
+
+        cache = extend(cache, n, result);
+        return result;
+    }
+    return fib;
+}
+
+var fib = make_fib();
+print fib(100);

@@ -74,9 +74,10 @@ func (i *interpreter) VisitFunDecl(f *ast.FunDecl) error {
 		params = append(params, p.Lexeme)
 	}
 	fun := &Function{
-		Name:   f.Identifier.Lexeme,
-		Params: params,
-		Stmnt:  f.Body,
+		Name:    f.Identifier.Lexeme,
+		Params:  params,
+		Stmnt:   f.Body,
+		Closure: i.env,
 	}
 	if err := i.env.define(f.Identifier.Lexeme, ast.CallableVal{Callable: fun}); err != nil {
 		return err

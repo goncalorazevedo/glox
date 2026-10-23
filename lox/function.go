@@ -7,9 +7,10 @@ import (
 )
 
 type Function struct {
-	Name   string
-	Params []string
-	Stmnt  ast.Stmnt
+	Name    string
+	Params  []string
+	Stmnt   ast.Stmnt
+	Closure *environment
 }
 
 var _ ast.Callable = (*Function)(nil)
@@ -31,11 +32,12 @@ func (f *Function) Call(ctx any, args ...ast.Value) (ast.Value, error) {
 		panic(fmt.Sprintf("invalid number of arguments provided to %s", f.String()))
 	}
 
-	interp.env = newEnvironment(interp.env)
+	prev := interp.env
+	interp.env = newEnvironment(f.Closure)
 	for i, p := range f.Params {
 		interp.env.define(p, args[i])
 	}
 	err := interp.evaluateStmnt(f.Stmnt)
-	interp.env = interp.env.enclosing
+	interp.env = prev
 	return &ast.Nil{}, err
 }

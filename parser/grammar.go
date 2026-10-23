@@ -48,11 +48,12 @@ func (p *parser) varDeclaration() (ast.Stmnt, error) {
 		if err != nil {
 			return nil, fmt.Errorf(`line %d: failed parsing initializer on "%s" declaration: %w`, identifier.Line, identifier.Lexeme, err)
 		}
-		if p.atEnd() || !p.match(lexer.Semicolon) {
-			return nil, fmt.Errorf(`line %d: missing ";" on variable declaration`, p.prevToken().Line)
-		}
-		p.index++
 	}
+	if p.atEnd() || !p.match(lexer.Semicolon) {
+		return nil, fmt.Errorf(`line %d: missing ";" on variable declaration`, p.prevToken().Line)
+	}
+	p.index++
+
 	return &ast.VarDecl{Identifier: identifier, Init: init}, nil
 }
 
