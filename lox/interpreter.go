@@ -11,17 +11,17 @@ type interpreter struct {
 	env *environment
 }
 
-var _ ast.ExprVisitor[ast.Value] = (*interpreter)(nil)
+var _ ast.ExprVisitor[Value, Value] = (*interpreter)(nil)
 var _ ast.StmntVisitor = (*interpreter)(nil)
 
 func Evaluate(stmnts []ast.Stmnt) error {
 	interp := interpreter{
 		env: newEnvironment(nil),
 	}
-	if err := interp.env.define("clock", ast.CallableVal{Callable: getClockNative()}); err != nil {
+	if err := interp.env.define("clock", CallableVal{Callable: getClockNative()}); err != nil {
 		panic(err)
 	}
-	if err := interp.env.define("sleep", ast.CallableVal{Callable: getSleepNative()}); err != nil {
+	if err := interp.env.define("sleep", CallableVal{Callable: getSleepNative()}); err != nil {
 		panic(err)
 	}
 	for _, stmnt := range stmnts {
@@ -36,7 +36,7 @@ func (i *interpreter) evaluateStmnt(s ast.Stmnt) error {
 	return ast.AcceptStmnt(s, i)
 }
 
-func (i *interpreter) evaluateExpr(expr ast.Expr) (ast.Value, error) {
+func (i *interpreter) evaluateExpr(expr ast.Expr) (Value, error) {
 	return ast.AcceptExpr(expr, i)
 }
 
@@ -54,7 +54,7 @@ func (i *interpreter) VisitExprStmnt(e *ast.ExprStmnt) error {
 }
 
 func (i *interpreter) VisitVarDecl(v *ast.VarDecl) error {
-	var value ast.Value = ast.Nil{}
+	var value Value = Nil{}
 	if v.Init != nil {
 		var err error
 		value, err = i.evaluateExpr(v.Init)
@@ -79,7 +79,7 @@ func (i *interpreter) VisitFunDecl(f *ast.FunDecl) error {
 		Stmnt:   f.Body,
 		Closure: i.env,
 	}
-	if err := i.env.define(f.Identifier.Lexeme, ast.CallableVal{Callable: fun}); err != nil {
+	if err := i.env.define(f.Identifier.Lexeme, CallableVal{Callable: fun}); err != nil {
 		return err
 	}
 	return nil
@@ -125,31 +125,31 @@ func (i *interpreter) VisitWhileStmnt(w *ast.WhileStmnt) error {
 	}
 }
 
-func (i *interpreter) VisitPrimary(p *ast.Primary) (ast.Value, error) {
+func (i *interpreter) VisitPrimary(p *ast.Primary[Value]) (Value, error) {
 	return p.Value, nil
 }
 
-func (i *interpreter) VisitGrouping(g *ast.Grouping) (ast.Value, error) {
-	return ast.AcceptExpr(g.Expr, i)
+func (i *interpreter) VisitGrouping(g *ast.Grouping) (Value, error) {
+	return i.evaluateExpr(g.Expr)
 }
 
-func (i *interpreter) VisitUnary(u *ast.Unary) (ast.Value, error) {
-	value, err := ast.AcceptExpr(u.Expr, i)
+func (i *interpreter) VisitUnary(u *ast.Unary) (Value, error) {
+	value, err := i.evaluateExpr(u.Expr)
 	if err != nil {
 		return nil, err
 	}
 	switch t := u.Token; t.Type {
 	case lexer.Bang:
 		switch v := value.(type) {
-		case ast.Bool:
-			return ast.Bool(!v), nil
+		case Bool:
+			return Bool(!v), nil
 		default:
 			return nil, fmt.Errorf("line %d: operand of '!' must be a boolean ", u.Token.Line)
 		}
 	case lexer.Minus:
 		switch v := value.(type) {
-		case ast.Number:
-			return ast.Number(-v), nil
+		case Number:
+			return Number(-v), nil
 		default:
 			return nil, fmt.Errorf("line %d: operand of '-' must be a number", u.Token.Line)
 		}
@@ -158,45 +158,45 @@ func (i *interpreter) VisitUnary(u *ast.Unary) (ast.Value, error) {
 	}
 }
 
-func (i *interpreter) VisitBinary(b *ast.Binary) (ast.Value, error) {
-	left, err := ast.AcceptExpr(b.Left, i)
+func (i *interpreter) VisitBinary(b *ast.Binary) (Value, error) {
+	left, err := i.evaluateExpr(b.Left)
 	if err != nil {
 		return nil, err
 	}
-	right, err := ast.AcceptExpr(b.Right, i)
+	right, err := i.evaluateExpr(b.Right)
 	if err != nil {
 		return nil, err
 	}
 
 	switch t := b.Token; t.Type {
 	case lexer.EqualEqual:
-		return ast.Bool(left == right), nil // Go interface values make this work for lox
+		return Bool(left == right), nil // Go interface values make this work for lox
 	case lexer.BangEqual:
-		return ast.Bool(left != right), nil // Go interface values make this work for lox
+		return Bool(left != right), nil // Go interface values make this work for lox
 	case lexer.Less:
 		less, err := isLess(left, right)
 		if err != nil {
 			return nil, err
 		}
-		return ast.Bool(less), nil
+		return Bool(less), nil
 	case lexer.LessEqual:
 		less, err := isLess(left, right)
 		if err != nil {
 			return nil, err
 		}
-		return ast.Bool(less || left == right), nil
+		return Bool(less || left == right), nil
 	case lexer.Greater:
 		less, err := isLess(left, right)
 		if err != nil {
 			return nil, err
 		}
-		return ast.Bool(!less && left != right), nil
+		return Bool(!less && left != right), nil
 	case lexer.GreaterEqual:
 		less, err := isLess(left, right)
 		if err != nil {
 			return nil, err
 		}
-		return ast.Bool(!less), nil
+		return Bool(!less), nil
 	case lexer.Plus, lexer.Minus, lexer.Star, lexer.Slash:
 		result, err := lookupBinaryOperation(t.Type)(left, right)
 		if err != nil {
@@ -208,8 +208,8 @@ func (i *interpreter) VisitBinary(b *ast.Binary) (ast.Value, error) {
 	}
 }
 
-func (i *interpreter) VisitLogical(l *ast.Logical) (ast.Value, error) {
-	left, err := ast.AcceptExpr(l.Left, i)
+func (i *interpreter) VisitLogical(l *ast.Logical) (Value, error) {
+	left, err := i.evaluateExpr(l.Left)
 	if err != nil {
 		return nil, err
 	}
@@ -226,10 +226,10 @@ func (i *interpreter) VisitLogical(l *ast.Logical) (ast.Value, error) {
 	default:
 		panic(fmt.Sprintf(`line %d: invalid operator "%s" for logical expression`, t.Line, t.Lexeme))
 	}
-	return ast.AcceptExpr(l.Right, i)
+	return i.evaluateExpr(l.Right)
 }
 
-func (i *interpreter) VisitVariable(v *ast.Variable) (ast.Value, error) {
+func (i *interpreter) VisitVariable(v *ast.Variable) (Value, error) {
 	value := i.env.lookup(v.Identifier.Lexeme)
 	if value == nil {
 		return nil, fmt.Errorf(`line %d: variable "%s" not defined in scope`, v.Identifier.Line, v.Identifier.Lexeme)
@@ -237,7 +237,7 @@ func (i *interpreter) VisitVariable(v *ast.Variable) (ast.Value, error) {
 	return value, nil
 }
 
-func (i *interpreter) VisitAssignment(a *ast.Assignment) (ast.Value, error) {
+func (i *interpreter) VisitAssignment(a *ast.Assignment) (Value, error) {
 	value, err := i.evaluateExpr(a.Expr)
 	if err != nil {
 		return nil, err
@@ -252,26 +252,26 @@ func (i *interpreter) VisitAssignment(a *ast.Assignment) (ast.Value, error) {
 // even though this is much more rudimentary it works similarly as we manually check
 // for errors everywhere
 type returnVal struct {
-	value ast.Value
+	value Value
 }
 
 func (r *returnVal) Error() string {
 	return fmt.Sprintf("%s", r.value)
 }
 
-func (i *interpreter) VisitCall(c *ast.Call) (ast.Value, error) {
+func (i *interpreter) VisitCall(c *ast.Call) (Value, error) {
 	callee, err := i.evaluateExpr(c.Callee)
 	if err != nil {
 		return nil, err
 	}
-	callable, ok := callee.(ast.CallableVal)
+	callable, ok := callee.(CallableVal)
 	if !ok {
 		return nil, fmt.Errorf("invalid call expression, not a callable value")
 	}
 	if callable.Arity() != len(c.Arguments) {
 		return nil, fmt.Errorf("invalid number of arguments to %s, got %d", callable, len(c.Arguments))
 	}
-	args := []ast.Value{}
+	args := []Value{}
 	for _, a := range c.Arguments {
 		v, err := i.evaluateExpr(a)
 		if err != nil {
@@ -290,7 +290,7 @@ func (i *interpreter) VisitCall(c *ast.Call) (ast.Value, error) {
 }
 
 func (i *interpreter) VisitReturn(r *ast.Return) error {
-	var value ast.Value = ast.Nil{}
+	var value Value = Nil{}
 	if r.Expr != nil {
 		var err error
 		value, err = i.evaluateExpr(r.Expr)

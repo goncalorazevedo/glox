@@ -8,7 +8,7 @@ import (
 
 type Expr interface{ isExpr() }
 
-func (*Primary) isExpr()    {}
+func (*Primary[T]) isExpr() {}
 func (*Grouping) isExpr()   {}
 func (*Unary) isExpr()      {}
 func (*Binary) isExpr()     {}
@@ -17,8 +17,8 @@ func (*Variable) isExpr()   {}
 func (*Assignment) isExpr() {}
 func (*Call) isExpr()       {}
 
-type ExprVisitor[R any] interface {
-	VisitPrimary(e *Primary) (R, error)
+type ExprVisitor[R any, V any] interface {
+	VisitPrimary(e *Primary[V]) (R, error)
 	VisitGrouping(e *Grouping) (R, error)
 	VisitUnary(e *Unary) (R, error)
 	VisitBinary(e *Binary) (R, error)
@@ -28,9 +28,9 @@ type ExprVisitor[R any] interface {
 	VisitCall(c *Call) (R, error)
 }
 
-func AcceptExpr[R any](e Expr, v ExprVisitor[R]) (R, error) {
+func AcceptExpr[R any, V any](e Expr, v ExprVisitor[R, V]) (R, error) {
 	switch expr := e.(type) {
-	case *Primary:
+	case *Primary[V]:
 		return v.VisitPrimary(expr)
 	case *Grouping:
 		return v.VisitGrouping(expr)
@@ -51,8 +51,8 @@ func AcceptExpr[R any](e Expr, v ExprVisitor[R]) (R, error) {
 	}
 }
 
-type Primary struct {
-	Value Value
+type Primary[T any] struct {
+	Value T
 }
 
 type Grouping struct {

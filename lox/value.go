@@ -1,4 +1,4 @@
-package ast
+package lox
 
 import (
 	"fmt"
@@ -41,8 +41,8 @@ func (n Nil) String() string {
 	return "nil"
 }
 
-func (s String) IsTruthy() bool    { return len(s) > 0 }
+func (s String) IsTruthy() bool    { return true }
 func (n Number) IsTruthy() bool    { return n != 0 }
 func (b Bool) IsTruthy() bool      { return bool(b) }
 func (Nil) IsTruthy() bool         { return false }
-func (CallableVal) IsTruthy() bool { return false }
+func (CallableVal) IsTruthy() bool { return true }

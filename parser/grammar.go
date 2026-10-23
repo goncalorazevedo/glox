@@ -6,6 +6,7 @@ import (
 
 	"github.com/goncalorazevedo/glox/ast"
 	"github.com/goncalorazevedo/glox/lexer"
+	"github.com/goncalorazevedo/glox/lox"
 )
 
 func (p *parser) parse() ([]ast.Stmnt, error) {
@@ -53,7 +54,6 @@ func (p *parser) varDeclaration() (ast.Stmnt, error) {
 		return nil, fmt.Errorf(`line %d: missing ";" on variable declaration`, p.prevToken().Line)
 	}
 	p.index++
-
 	return &ast.VarDecl{Identifier: identifier, Init: init}, nil
 }
 
@@ -287,7 +287,7 @@ func (p *parser) forStmnt() (ast.Stmnt, error) {
 		body = &ast.Block{Stmnts: []ast.Stmnt{stmnt, &ast.ExprStmnt{Expr: increment}}}
 	}
 	if condition == nil {
-		condition = &ast.Primary{Value: ast.Bool(true)}
+		condition = &ast.Primary[lox.Value]{Value: lox.Bool(true)}
 	}
 	loop := &ast.WhileStmnt{Condition: condition, Stmnt: body}
 	if initializer == nil {
@@ -532,16 +532,16 @@ func (p *parser) primary() (ast.Expr, error) {
 	switch t := p.currToken(); t.Type {
 	case lexer.True, lexer.False:
 		p.index++
-		return &ast.Primary{Value: ast.Bool(t.Value.(bool))}, nil
+		return &ast.Primary[lox.Value]{Value: lox.Bool(t.Value.(bool))}, nil
 	case lexer.String:
 		p.index++
-		return &ast.Primary{Value: ast.String(t.Value.(string))}, nil
+		return &ast.Primary[lox.Value]{Value: lox.String(t.Value.(string))}, nil
 	case lexer.Number:
 		p.index++
-		return &ast.Primary{Value: ast.Number(t.Value.(float64))}, nil
+		return &ast.Primary[lox.Value]{Value: lox.Number(t.Value.(float64))}, nil
 	case lexer.Nil:
 		p.index++
-		return &ast.Primary{Value: ast.Nil(t.Value.(struct{}))}, nil
+		return &ast.Primary[lox.Value]{Value: lox.Nil(t.Value.(struct{}))}, nil
 	case lexer.Identifier:
 		p.index++
 		return &ast.Variable{Identifier: p.prevToken()}, nil

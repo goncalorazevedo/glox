@@ -1,4 +1,4 @@
-package ast
+package lox
 
 type Callable interface {
 	String() string

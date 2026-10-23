@@ -13,7 +13,7 @@ type Function struct {
 	Closure *environment
 }
 
-var _ ast.Callable = (*Function)(nil)
+var _ Callable = (*Function)(nil)
 
 func (f *Function) String() string {
 	return fmt.Sprintf("<fun %s(%d)>", f.Name, f.Arity())
@@ -23,7 +23,7 @@ func (f *Function) Arity() int {
 	return len(f.Params)
 }
 
-func (f *Function) Call(ctx any, args ...ast.Value) (ast.Value, error) {
+func (f *Function) Call(ctx any, args ...Value) (Value, error) {
 	interp, ok := ctx.(*interpreter)
 	if !ok {
 		panic(fmt.Sprintf("missing Lox interpreter context in call to %s", f.String()))
@@ -39,5 +39,5 @@ func (f *Function) Call(ctx any, args ...ast.Value) (ast.Value, error) {
 	}
 	err := interp.evaluateStmnt(f.Stmnt)
 	interp.env = prev
-	return &ast.Nil{}, err
+	return Nil{}, err
 }

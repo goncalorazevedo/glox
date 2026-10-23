@@ -2,23 +2,21 @@ package lox
 
 import (
 	"fmt"
-
-	"github.com/goncalorazevedo/glox/ast"
 )
 
 type environment struct {
-	values    map[string]ast.Value
+	values    map[string]Value
 	enclosing *environment
 }
 
 func newEnvironment(enclosing *environment) *environment {
 	return &environment{
-		values:    make(map[string]ast.Value),
+		values:    make(map[string]Value),
 		enclosing: enclosing,
 	}
 }
 
-func (e *environment) define(s string, v ast.Value) error {
+func (e *environment) define(s string, v Value) error {
 	if _, exists := e.values[s]; exists {
 		return fmt.Errorf("variable %s already defined in this scope", s)
 	}
@@ -26,7 +24,7 @@ func (e *environment) define(s string, v ast.Value) error {
 	return nil
 }
 
-func (e *environment) assign(s string, v ast.Value) error {
+func (e *environment) assign(s string, v Value) error {
 	if _, exists := e.values[s]; !exists {
 		return e.enclosing.assign(s, v)
 	}
@@ -34,7 +32,7 @@ func (e *environment) assign(s string, v ast.Value) error {
 	return nil
 }
 
-func (e *environment) lookup(s string) ast.Value {
+func (e *environment) lookup(s string) Value {
 	if v, exists := e.values[s]; exists {
 		return v
 	}
