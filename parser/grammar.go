@@ -1,8 +1,9 @@
-// recursive descent parser for the Lox grammar https://craftinginterpreters.com/appendix-i.html
+// Package parser recursive descent parser for the Lox grammar https://craftinginterpreters.com/appendix-i.html
 package parser
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/goncalorazevedo/glox/ast"
 	"github.com/goncalorazevedo/glox/lexer"
@@ -10,7 +11,7 @@ import (
 )
 
 func (p *parser) parse() ([]ast.Stmnt, error) {
-	stmnts := []ast.Stmnt{}
+	var stmnts []ast.Stmnt
 	for !p.atEnd() {
 		stmnt, err := p.declaration()
 		if err != nil {
@@ -29,9 +30,9 @@ func (p *parser) declaration() (ast.Stmnt, error) {
 	case lexer.Fun:
 		p.index++
 		return p.funDeclaration()
-	case lexer.Class:
+	default:
+		return p.statement()
 	}
-	return p.statement()
 }
 
 func (p *parser) varDeclaration() (ast.Stmnt, error) {
@@ -72,7 +73,7 @@ func (p *parser) funDeclaration() (ast.Stmnt, error) {
 	if p.atEnd() {
 		return nil, fmt.Errorf(`line %d: unexpected EOF parsing function "%s" parameters`, identifier.Line, identifier.Lexeme)
 	}
-	params := []lexer.Token{}
+	var params []lexer.Token
 	if p.match(lexer.RightParen) {
 		p.index++ // no parameters
 	} else {
@@ -144,7 +145,7 @@ func (p *parser) block() (ast.Stmnt, error) {
 		return nil, fmt.Errorf("unexpected token while parsing block statement")
 	}
 	p.index++
-	stmnts := []ast.Stmnt{}
+	var stmnts []ast.Stmnt
 	for {
 		if p.atEnd() {
 			return nil, fmt.Errorf("unexpected EOF while parsing block statement")
@@ -292,9 +293,9 @@ func (p *parser) forStmnt() (ast.Stmnt, error) {
 	loop := &ast.WhileStmnt{Condition: condition, Stmnt: body}
 	if initializer == nil {
 		return loop, nil
-	} else {
-		return &ast.Block{Stmnts: []ast.Stmnt{initializer, loop}}, nil
 	}
+
+	return &ast.Block{Stmnts: []ast.Stmnt{initializer, loop}}, nil
 }
 
 func (p *parser) returnStmnt() (ast.Stmnt, error) {
@@ -350,7 +351,7 @@ func (p *parser) assignment() (ast.Expr, error) {
 }
 
 func (p *parser) or() (ast.Expr, error) {
-	expr, err := p.and()
+	var expr, err = p.and()
 	if err != nil {
 		return nil, err
 	}
@@ -495,7 +496,7 @@ func (p *parser) call() (ast.Expr, error) {
 		if p.atEnd() {
 			return nil, fmt.Errorf("unexpected EOF parsing call arguments")
 		}
-		args := []ast.Expr{}
+		var args []ast.Expr
 		if p.match(lexer.RightParen) {
 			p.index++
 		} else {
@@ -577,12 +578,7 @@ func (p *parser) match(t lexer.TokenType) bool {
 }
 
 func (p *parser) matchAny(types ...lexer.TokenType) bool {
-	for _, t := range types {
-		if p.tokens[p.index].Type == t {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(types, p.tokens[p.index].Type)
 }
 
 // returns false if next token is EOF

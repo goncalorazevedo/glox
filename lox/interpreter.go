@@ -271,7 +271,7 @@ func (i *interpreter) VisitCall(c *ast.Call) (Value, error) {
 	if callable.Arity() != len(c.Arguments) {
 		return nil, fmt.Errorf("invalid number of arguments to %s, got %d", callable, len(c.Arguments))
 	}
-	args := []Value{}
+	var args []Value
 	for _, a := range c.Arguments {
 		v, err := i.evaluateExpr(a)
 		if err != nil {

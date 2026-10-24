@@ -21,7 +21,7 @@ func (n *Native) String() string {
 	return fmt.Sprintf("<native  %s(%d)>", n.Name, n.Arity())
 }
 
-func (n *Native) Call(ctx any, args ...Value) (Value, error) {
+func (n *Native) Call(_ any, args ...Value) (Value, error) {
 	if n.Arity() != len(args) {
 		panic(fmt.Sprintf("invalid number of arguments provided to %s", n.String()))
 	}

@@ -18,7 +18,7 @@ func (*Assignment) isExpr() {}
 func (*Call) isExpr()       {}
 
 type ExprVisitor[R any, V any] interface {
-	VisitPrimary(e *Primary[V]) (R, error)
+	VisitPrimary(e *Primary[V]) (R, rror)
 	VisitGrouping(e *Grouping) (R, error)
 	VisitUnary(e *Unary) (R, error)
 	VisitBinary(e *Binary) (R, error)
